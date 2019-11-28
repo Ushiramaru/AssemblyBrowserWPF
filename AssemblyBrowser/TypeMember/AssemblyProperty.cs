@@ -14,19 +14,20 @@ namespace AssemblyBrowser.TypeMember
         public AccessModifier GetterModifier { get; }
         public AccessModifier Modifier { get; }
         public bool IsStatic { get; }
+        public readonly List<MethodInfo> AutoMethods;
 
         public AssemblyProperty(PropertyInfo propertyInfo)
         {
             Name = propertyInfo.Name;
             ValueType = propertyInfo.PropertyType;
 
-            var methodsList = new List<MethodInfo>();
+            AutoMethods = new List<MethodInfo>();
 
             CanRead = propertyInfo.CanRead;
             if (CanRead)
             {
                 var method = propertyInfo.GetMethod;
-                methodsList.Add(method);
+                AutoMethods.Add(method);
                 if (method.IsPublic)
                 {
                     GetterModifier = AccessModifier.Public;
@@ -49,7 +50,7 @@ namespace AssemblyBrowser.TypeMember
             if (CanWrite)
             {
                 var method = propertyInfo.SetMethod;
-                methodsList.Add(method);
+                AutoMethods.Add(method);
                 if (method.IsPublic)
                 {
                     SetterModifier = AccessModifier.Public;
@@ -68,44 +69,29 @@ namespace AssemblyBrowser.TypeMember
                 }
             }
 
-            foreach (var methodInfo in methodsList)
+            foreach (var methodInfo in AutoMethods)
             {
                 IsVirtual = methodInfo.IsVirtual;
                 IsAbstract = methodInfo.IsAbstract;
                 IsStatic = methodInfo.IsStatic;
             }
 
-            if (ValueType.IsNestedPublic)
+            if (GetterModifier == AccessModifier.Public || SetterModifier == AccessModifier.Public)
             {
                 Modifier = AccessModifier.Public;
             }
-            else if (ValueType.IsNestedPrivate)
-            {
-                Modifier = AccessModifier.Private;
-            }
-            else if (ValueType.IsNestedAssembly)
-            {
-                Modifier = AccessModifier.Internal;
-            }
-            else if (ValueType.IsNestedFamily)
+            else if (GetterModifier == AccessModifier.Protected || SetterModifier == AccessModifier.Protected)
             {
                 Modifier = AccessModifier.Protected;
             }
+            else if (GetterModifier == AccessModifier.Internal || SetterModifier == AccessModifier.Internal)
+            {
+                Modifier = AccessModifier.Internal;
+            }
+            else
+            {
+                Modifier = AccessModifier.Private;
+            }
         }
-
-//        public List<MethodInfo> PropertyMethods(PropertyInfo propertyInfo)
-//        {
-//            var propertyMethods = new List<MethodInfo>();
-//            if (CanRead)
-//            {
-//                propertyMethods.Add(propertyInfo.GetMethod);
-//            }
-//            if (CanWrite)
-//            {
-//                propertyMethods.Add(propertyInfo.SetMethod);
-//            }
-//
-//            return propertyMethods;
-//        }
     }
 }

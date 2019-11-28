@@ -15,6 +15,7 @@ namespace AssemblyBrowser
 
         public string Name { get; }
         public bool IsNested { get; }
+        public bool IsClass { get; }
         public bool IsStructure { get; }
         public bool IsSealed { get; }
         public bool IsInterface { get; }
@@ -23,6 +24,7 @@ namespace AssemblyBrowser
         public List<AssemblyField> Fields { get; }
         public List<AssemblyProperty> Properties { get; }
         public List<AssemblyMethod> Methods { get; }
+        public List<AssemblyConstructor> Constructors { get; }
         public bool IsEnum { get; }
 
         public AssemblyType(Type type)
@@ -31,12 +33,10 @@ namespace AssemblyBrowser
             Fields = new List<AssemblyField>();
             Properties = new List<AssemblyProperty>();
             Methods = new List<AssemblyMethod>();
+            Constructors = new List<AssemblyConstructor>();
+            var autoMethods = new List<MethodInfo>();
 
             IsNested = type.IsNested;
-            IsAbstract = type.IsAbstract;
-            IsStructure = type.IsValueType;
-            IsInterface = type.IsInterface;
-            IsEnum = type.IsEnum;
             IsSealed = type.IsSealed;
 
             TypeAttributes visibilityMask = type.Attributes & TypeAttributes.VisibilityMask;
@@ -56,11 +56,30 @@ namespace AssemblyBrowser
                     break;
             }
 
+            TypeAttributes classSemantics = type.Attributes & TypeAttributes.ClassSemanticsMask;
+            switch (classSemantics)
+            {
+                case TypeAttributes.Class:
+                    IsAbstract = (type.Attributes & TypeAttributes.Abstract) != 0;
+                    IsClass = type.IsClass;
+                    if (!IsClass)
+                    {
+                        IsStructure = true;
+                        IsEnum = type.IsEnum;
+                    }
+
+                    break;
+                case TypeAttributes.Interface:
+                    IsInterface = true;
+                    Modifier = AccessModifier.Public;
+                    break;
+            }
 
             PropertyInfo[] properties = type.GetProperties(BindingFlags);
             foreach (var property in properties)
             {
                 var assemblyProperty = new AssemblyProperty(property);
+                autoMethods.AddRange(assemblyProperty.AutoMethods);
                 Properties.Add(assemblyProperty);
             }
 
@@ -75,8 +94,18 @@ namespace AssemblyBrowser
             MethodInfo[] methods = type.GetMethods(BindingFlags);
             foreach (var methodInfo in methods)
             {
-                var method = new AssemblyMethod(methodInfo);
-                Methods.Add(method);
+                if (!autoMethods.Contains(methodInfo))
+                {
+                    var method = new AssemblyMethod(methodInfo);
+                    Methods.Add(method);
+                }
+            }
+
+            ConstructorInfo[] constructors = type.GetConstructors(BindingFlags);
+            foreach (var constructorInfo in constructors)
+            {
+                var constructor = new AssemblyConstructor(constructorInfo);
+                Constructors.Add(constructor);
             }
         }
     }

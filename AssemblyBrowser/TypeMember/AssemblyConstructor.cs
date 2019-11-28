@@ -4,52 +4,44 @@ using AssemblyBrowser.Enums;
 
 namespace AssemblyBrowser.TypeMember
 {
-    public class AssemblyMethod : AssemblyTypeMember
+    public class AssemblyConstructor : AssemblyTypeMember
     {
-        public List<AssemblyParameter> Parameters { get; }
+        public new const string Name = "constructor";
         public AccessModifier Modifier { get; }
-        public bool IsAbstract { get; }
-        public bool IsVirtual { get; }
+        public List<AssemblyParameter> Parameters { get; }
         public bool IsStatic { get; }
 
-        public AssemblyMethod(MethodInfo methodInfo)
+        public AssemblyConstructor(ConstructorInfo constructor)
         {
-            Name = methodInfo.Name;
-            ValueType = methodInfo.ReturnType;
-
-            if (methodInfo.IsPublic)
+            if (constructor.IsPublic)
             {
                 Modifier = AccessModifier.Public;
             }
 
-            if (methodInfo.IsPrivate)
+            if (constructor.IsPrivate)
             {
                 Modifier = AccessModifier.Private;
             }
 
-            if (methodInfo.IsFamily)
+            if (constructor.IsFamily)
             {
                 Modifier = AccessModifier.Protected;
             }
 
-            if (methodInfo.IsAssembly)
+            if (constructor.IsAssembly)
             {
                 Modifier = AccessModifier.Internal;
             }
 
-            MethodAttributes attr = methodInfo.Attributes;
-            IsVirtual = (attr & MethodAttributes.Virtual) != 0;
-            IsAbstract = (attr & MethodAttributes.Abstract) != 0;
-            IsStatic = (attr & MethodAttributes.Static) != 0;
-
-
+            ParameterInfo[] parameters = constructor.GetParameters();
             Parameters = new List<AssemblyParameter>();
-            ParameterInfo[] parameters = methodInfo.GetParameters();
             foreach (var parameter in parameters)
             {
                 var newParameter = new AssemblyParameter(parameter);
                 Parameters.Add(newParameter);
             }
+
+            IsStatic = constructor.IsStatic;
         }
     }
 }
